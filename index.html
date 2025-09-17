@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Earn Now - Telegram Mini App</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Removed Adexora ad script -->
   <script src="https://ad.gigapub.tech/script?id=2128"></script>
   <style>
     :root {
@@ -711,7 +710,7 @@
   <div class="notification" id="notification"></div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const tg = window.Telegram.WebApp;
       tg.expand();
 
@@ -720,38 +719,50 @@
       
       // If VPN is required, check user's access
       if (vpnSettings.vpnRequired) {
-        // This is a simplified check - in a real app you would get the user's actual IP and location
-        const userIP = "user-ip-placeholder"; // Would be fetched from an API in production
-        const userCountry = "user-country-placeholder"; // Would be fetched from an API in production
-        
-        // Check if user's country is allowed
-        const allowedCountries = vpnSettings.allowedCountries.split(',').map(c => c.trim().toUpperCase());
-        if (allowedCountries.length > 0 && !allowedCountries.includes(userCountry.toUpperCase())) {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
-              <div>
-                <h2>Access Restricted</h2>
-                <p>This application is not available in your country.</p>
-                <p>Please use a VPN from an allowed country to access this app.</p>
-                <p>Allowed countries: ${vpnSettings.allowedCountries}</p>
+        try {
+          // Get user's actual IP and country
+          const ipResponse = await fetch('https://api.ipify.org?format=json');
+          const ipData = await ipResponse.json();
+          const userIP = ipData.ip;
+          
+          const locationResponse = await fetch(`https://ipapi.co/${userIP}/country/`);
+          const userCountry = await locationResponse.text();
+          
+          // Check if user's country is allowed
+          const allowedCountries = vpnSettings.allowedCountries.split(',').map(c => c.trim().toUpperCase());
+          if (allowedCountries.length > 0 && !allowedCountries.includes(userCountry.toUpperCase())) {
+            document.body.innerHTML = `
+              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
+                <div>
+                  <h2>Access Restricted</h2>
+                  <p>This application is not available in your country (${userCountry}).</p>
+                  <p>Please use a VPN from an allowed country to access this app.</p>
+                  <p>Allowed countries: ${vpnSettings.allowedCountries}</p>
+                </div>
               </div>
-            </div>
-          `;
-          return;
-        }
-        
-        // Check if specific IP/Port is required
-        if (vpnSettings.requiredIP && vpnSettings.requiredPort) {
-          // This would be validated against the user's actual connection in production
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
-              <div>
-                <h2>VPN Required</h2>
-                <p>Please connect to the required VPN with IP: ${vpnSettings.requiredIP} and Port: ${vpnSettings.requiredPort}</p>
+            `;
+            return;
+          }
+          
+          // Check if specific IP/Port is required
+          if (vpnSettings.requiredIP && vpnSettings.requiredPort) {
+            // This would be validated against the user's actual connection in production
+            // For now, we'll just show a message
+            document.body.innerHTML = `
+              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
+                <div>
+                  <h2>VPN Required</h2>
+                  <p>Please connect to the required VPN with IP: ${vpnSettings.requiredIP} and Port: ${vpnSettings.requiredPort}</p>
+                  <p>Your current IP: ${userIP}</p>
+                </div>
               </div>
-            </div>
-          `;
-          return;
+            `;
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking VPN restrictions:", error);
+          // If there's an error, allow access but show a warning
+          showNotification("⚠️ Could not verify location. Some features may be restricted.", false);
         }
       }
 
@@ -1076,4 +1087,4 @@
     });
   </script>
 </body>
-                                         </html>
+  </html>
