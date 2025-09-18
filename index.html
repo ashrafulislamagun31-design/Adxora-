@@ -6,7 +6,14 @@
   <title>Earn Now - Telegram Mini App</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://ad.gigapub.tech/script?id=2128"></script>
+  
+  <!-- Firebase App (core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <!-- Firebase Firestore -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
   <style>
+    /* Your existing CSS styles remain unchanged */
     :root {
       --primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
       --secondary-gradient: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
@@ -525,6 +532,7 @@
     .country-code-input {
       display: flex;
       gap: 10px;
+      margin-bottom: 15px;
     }
     
     .country-code-input input {
@@ -535,10 +543,200 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    /* Country Restriction Styling */
+    .country-restrictions {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      margin-top: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .country-search {
+      position: relative;
+      margin-bottom: 15px;
+    }
+    
+    .country-search input {
+      padding-left: 40px;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #999;
+    }
+    
+    .country-tiers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .tier-btn {
+      padding: 10px;
+      border: 2px solid #e4e8f0;
+      border-radius: 8px;
+      background: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    
+    .tier-btn:hover {
+      border-color: #6a11cb;
+      background: rgba(106, 17, 203, 0.05);
+    }
+    
+    .tier-btn.selected {
+      border-color: #6a11cb;
+      background: rgba(106, 17, 203, 0.1);
+    }
+    
+    .tier-high {
+      color: #e74c3c;
+    }
+    
+    .tier-medium {
+      color: #f39c12;
+    }
+    
+    .tier-low {
+      color: #27ae60;
+    }
+    
+    .countries-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e4e8f0;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .country-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .country-item:hover {
+      background: #f8f9fa;
+    }
+    
+    .country-item.selected {
+      background: rgba(106, 17, 203, 0.1);
+    }
+    
+    .country-checkbox {
+      margin-right: 10px;
+    }
+    
+    /* User Management Styling */
+    .user-management {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      margin-top: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .user-search {
+      position: relative;
+      margin-bottom: 15px;
+    }
+    
+    .user-search input {
+      padding-left: 40px;
+    }
+    
+    .users-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e4e8f0;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+    }
+    
+    .user-info {
+      flex: 1;
+    }
+    
+    .user-name {
+      font-weight: 600;
+    }
+    
+    .user-id {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .user-balance {
+      font-weight: 700;
+      color: #6a11cb;
+      margin-right: 10px;
+    }
+    
+    .user-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .edit-balance-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .edit-balance-form input {
+      flex: 1;
+    }
+    
+    /* Firebase loading indicator */
+    .firebase-loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
+  <div class="firebase-loading" id="firebaseLoading">
+    <div style="text-align: center;">
+      <div class="loading"></div>
+      <p>Connecting to server...</p>
+    </div>
+  </div>
+
   <div class="app-container">
     <header>
       <h1>Earn Now</h1>
@@ -651,29 +849,37 @@
               <input type="number" id="per-ad-rate" step="0.06" value="0.06" min="0.06" placeholder="Enter amount per ad">
             </div>
             
-            <div class="vpn-settings">
-              <h3>VPN & Country Restrictions</h3>
+            <div class="country-restrictions">
+              <h3>Country Restrictions by eCPM Tier</h3>
               
-              <div class="toggle-container">
-                <div class="toggle-label">Require VPN</div>
-                <label class="toggle-switch">
-                  <input type="checkbox" id="vpn-toggle">
-                  <span class="slider"></span>
-                </label>
+              <div class="country-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="country-search" placeholder="Search for countries...">
               </div>
+              
+              <div class="country-tiers">
+                <div class="tier-btn tier-high" data-tier="high">High eCPM</div>
+                <div class="tier-btn tier-medium" data-tier="medium">Medium eCPM</div>
+                <div class="tier-btn tier-low" data-tier="low">Low eCPM</div>
+              </div>
+              
+              <div class="countries-list" id="countries-list"></div>
               
               <div class="input-group">
-                <div class="input-label">Allowed Country Codes (comma separated)</div>
-                <input type="text" id="allowed-countries" placeholder="BD,US,UK">
+                <div class="input-label">Selected Countries</div>
+                <div id="selected-countries"></div>
+              </div>
+            </div>
+            
+            <div class="user-management">
+              <h3>User Management</h3>
+              
+              <div class="user-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="user-search" placeholder="Search users...">
               </div>
               
-              <div class="input-group">
-                <div class="input-label">Required IP & Port (optional)</div>
-                <div class="ip-port-inputs">
-                  <input type="text" id="required-ip" placeholder="IP Address">
-                  <input type="text" id="required-port" placeholder="Port">
-                </div>
-              </div>
+              <div class="users-list" id="users-list"></div>
             </div>
             
             <button class="btn btn-primary" id="save-settings">
@@ -710,65 +916,130 @@
   <div class="notification" id="notification"></div>
 
   <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDp49URVg2ipSBuoEBGZyqWWyc29cxAleE",
+      authDomain: "easy-earn-af82c.firebaseapp.com",
+      projectId: "easy-earn-af82c",
+      storageBucket: "easy-earn-af82c.firebasestorage.app",
+      messagingSenderId: "572340074151",
+      appId: "1:572340074151:web:778d58946c1163427acd82",
+      measurementId: "G-3RFZSPZD9W"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     document.addEventListener("DOMContentLoaded", async () => {
       const tg = window.Telegram.WebApp;
       tg.expand();
-
-      // Check VPN restrictions before allowing access
-      const vpnSettings = JSON.parse(localStorage.getItem("vpnSettings") || '{"vpnRequired": false, "allowedCountries": "", "requiredIP": "", "requiredPort": ""}');
       
-      // If VPN is required, check user's access
-      if (vpnSettings.vpnRequired) {
-        try {
-          // Get user's actual IP and country
-          const ipResponse = await fetch('https://api.ipify.org?format=json');
-          const ipData = await ipResponse.json();
-          const userIP = ipData.ip;
-          
-          const locationResponse = await fetch(`https://ipapi.co/${userIP}/country/`);
-          const userCountry = await locationResponse.text();
-          
-          // Check if user's country is allowed
-          const allowedCountries = vpnSettings.allowedCountries.split(',').map(c => c.trim().toUpperCase());
-          if (allowedCountries.length > 0 && !allowedCountries.includes(userCountry.toUpperCase())) {
-            document.body.innerHTML = `
-              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
-                <div>
-                  <h2>Access Restricted</h2>
-                  <p>This application is not available in your country (${userCountry}).</p>
-                  <p>Please use a VPN from an allowed country to access this app.</p>
-                  <p>Allowed countries: ${vpnSettings.allowedCountries}</p>
+      // Show loading indicator
+      document.getElementById("firebaseLoading").style.display = "flex";
+
+      // Country data with eCPM tiers
+      const countryData = [
+        {code: "US", name: "United States", tier: "high"},
+        {code: "CA", name: "Canada", tier: "high"},
+        {code: "GB", name: "United Kingdom", tier: "high"},
+        {code: "AU", name: "Australia", tier: "high"},
+        {code: "DE", name: "Germany", tier: "high"},
+        {code: "FR", name: "France", tier: "high"},
+        {code: "JP", name: "Japan", tier: "high"},
+        {code: "KR", name: "South Korea", tier: "high"},
+        {code: "SG", name: "Singapore", tier: "high"},
+        {code: "NL", name: "Netherlands", tier: "high"},
+        {code: "SE", name: "Sweden", tier: "high"},
+        {code: "NO", name: "Norway", tier: "high"},
+        {code: "CH", name: "Switzerland", tier: "high"},
+        {code: "DK", name: "Denmark", tier: "high"},
+        {code: "FI", name: "Finland", tier: "high"},
+        {code: "IE", name: "Ireland", tier: "high"},
+        {code: "AT", name: "Austria", tier: "high"},
+        {code: "BE", name: "Belgium", tier: "high"},
+        {code: "NZ", name: "New Zealand", tier: "high"},
+        {code: "IT", name: "Italy", tier: "medium"},
+        {code: "ES", name: "Spain", tier: "medium"},
+        {code: "BR", name: "Brazil", tier: "medium"},
+        {code: "MX", name: "Mexico", tier: "medium"},
+        {code: "PL", name: "Poland", tier: "medium"},
+        {code: "RU", name: "Russia", tier: "medium"},
+        {code: "TR", name: "Turkey", tier: "medium"},
+        {code: "SA", name: "Saudi Arabia", tier: "medium"},
+        {code: "ZA", name: "South Africa", tier: "medium"},
+        {code: "AR", name: "Argentina", tier: "medium"},
+        {code: "CL", name: "Chile", tier: "medium"},
+        {code: "CO", name: "Colombia", tier: "medium"},
+        {code: "MY", name: "Malaysia", tier: "medium"},
+        {code: "TH", name: "Thailand", tier: "medium"},
+        {code: "ID", name: "Indonesia", tier: "medium"},
+        {code: "PH", name: "Philippines", tier: "medium"},
+        {code: "VN", name: "Vietnam", tier: "medium"},
+        {code: "IN", name: "India", tier: "low"},
+        {code: "PK", name: "Pakistan", tier: "low"},
+        {code: "BD", name: "Bangladesh", tier: "low"},
+        {code: "NG", name: "Nigeria", tier: "low"},
+        {code: "EG", name: "Egypt", tier: "low"},
+        {code: "ET", name: "Ethiopia", tier: "low"},
+        {code: "KE", name: "Kenya", tier: "low"},
+        {code: "GH", name: "Ghana", tier: "low"},
+        {code: "TZ", name: "Tanzania", tier: "low"},
+        {code: "UG", name: "Uganda", tier: "low"},
+        {code: "MM", name: "Myanmar", tier: "low"},
+        {code: "KH", name: "Cambodia", tier: "low"},
+        {code: "LA", name: "Laos", tier: "low"},
+        {code: "NP", name: "Nepal", tier: "low"},
+        {code: "LK", name: "Sri Lanka", tier: "low"}
+      ];
+
+      // Check country restrictions before allowing access
+      try {
+        const settingsDoc = await db.collection("settings").doc("countryRestrictions").get();
+        const countrySettings = settingsDoc.exists ? settingsDoc.data() : {allowedCountries: [], restrictionEnabled: false};
+        
+        // If country restriction is enabled, check user's access
+        if (countrySettings.restrictionEnabled && countrySettings.allowedCountries.length > 0) {
+          try {
+            // Get user's actual IP and country
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            const userIP = ipData.ip;
+            
+            const locationResponse = await fetch(`https://ipapi.co/${userIP}/country/`);
+            const userCountry = await locationResponse.text();
+            
+            // Check if user's country is allowed
+            if (!countrySettings.allowedCountries.includes(userCountry.toUpperCase())) {
+              document.body.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
+                  <div>
+                    <h2>Access Restricted</h2>
+                    <p>This application is not available in your country (${userCountry}).</p>
+                    <p>Please contact support if you believe this is an error.</p>
+                  </div>
                 </div>
-              </div>
-            `;
-            return;
+              `;
+              return;
+            }
+          } catch (error) {
+            console.error("Error checking country restrictions:", error);
+            // If there's an error, allow access but show a warning
+            showNotification("⚠️ Could not verify location. Some features may be restricted.", false);
           }
-          
-          // Check if specific IP/Port is required
-          if (vpnSettings.requiredIP && vpnSettings.requiredPort) {
-            // This would be validated against the user's actual connection in production
-            // For now, we'll just show a message
-            document.body.innerHTML = `
-              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--primary-gradient); color: white; text-align: center; padding: 20px;">
-                <div>
-                  <h2>VPN Required</h2>
-                  <p>Please connect to the required VPN with IP: ${vpnSettings.requiredIP} and Port: ${vpnSettings.requiredPort}</p>
-                  <p>Your current IP: ${userIP}</p>
-                </div>
-              </div>
-            `;
-            return;
-          }
-        } catch (error) {
-          console.error("Error checking VPN restrictions:", error);
-          // If there's an error, allow access but show a warning
-          showNotification("⚠️ Could not verify location. Some features may be restricted.", false);
         }
+      } catch (error) {
+        console.error("Error loading country restrictions:", error);
       }
 
       let userId = "guest_" + Math.floor(Math.random()*99999);
+      let userName = "Guest User";
+      let userUsername = "guest";
+      
       if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = "user_" + tg.initDataUnsafe.user.id;
+        userName = tg.initDataUnsafe.user.first_name + (tg.initDataUnsafe.user.last_name ? " " + tg.initDataUnsafe.user.last_name : "");
+        userUsername = tg.initDataUnsafe.user.username || "no_username";
       }
 
       const balanceEl = document.getElementById("balance");
@@ -784,12 +1055,12 @@
       const saveSettingsBtn = document.getElementById("save-settings");
       const withdrawRequestsTable = document.getElementById("withdraw-requests");
       const notification = document.getElementById("notification");
-
-      // VPN elements
-      const vpnToggle = document.getElementById("vpn-toggle");
-      const allowedCountriesInput = document.getElementById("allowed-countries");
-      const requiredIPInput = document.getElementById("required-ip");
-      const requiredPortInput = document.getElementById("required-port");
+      const countriesList = document.getElementById("countries-list");
+      const selectedCountries = document.getElementById("selected-countries");
+      const countrySearch = document.getElementById("country-search");
+      const tierButtons = document.querySelectorAll('.tier-btn');
+      const usersList = document.getElementById("users-list");
+      const userSearch = document.getElementById("user-search");
 
       const adModal = document.getElementById("adModal");
       const adTimer = document.getElementById("adTimer");
@@ -811,45 +1082,188 @@
       const accountNumberInput = document.getElementById('account-number');
       const withdrawAmountInput = document.getElementById('withdraw-amount');
 
-      let userData = { balance: 0, userId: userId };
-      let allRequests = JSON.parse(localStorage.getItem("allRequests")||"[]");
-      let perAdRate = parseFloat(localStorage.getItem("perAdRate")||"0.06");
+      let userData = { balance: 0, userId: userId, name: userName, username: userUsername };
+      let allRequests = [];
+      let allUsers = [];
+      let perAdRate = 0.06;
       let isAdminLoggedIn = false;
+      let currentTierFilter = "all";
+      let selectedCountryCodes = [];
 
-      function loadData() {
-        // Always get the current per-ad rate from localStorage
-        perAdRate = parseFloat(localStorage.getItem("perAdRate")||"0.06");
+      // Firebase data loading functions
+      async function loadUserData() {
+        try {
+          const userDoc = await db.collection("users").doc(userId).get();
+          if (userDoc.exists) {
+            userData = userDoc.data();
+          } else {
+            // Create new user document
+            userData = { 
+              balance: 0, 
+              userId: userId, 
+              name: userName, 
+              username: userUsername,
+              registrationDate: new Date().toISOString(),
+              adHistory: []
+            };
+            await db.collection("users").doc(userId).set(userData);
+          }
+        } catch (error) {
+          console.error("Error loading user data:", error);
+          showNotification("Error loading user data", false);
+        }
+      }
+
+      async function loadAllRequests() {
+        try {
+          const requestsSnapshot = await db.collection("withdrawalRequests")
+            .orderBy("date", "desc")
+            .get();
+          
+          allRequests = [];
+          requestsSnapshot.forEach(doc => {
+            allRequests.push(doc.data());
+          });
+        } catch (error) {
+          console.error("Error loading withdrawal requests:", error);
+        }
+      }
+
+      async function loadAllUsers() {
+        try {
+          const usersSnapshot = await db.collection("users").get();
+          
+          allUsers = [];
+          usersSnapshot.forEach(doc => {
+            allUsers.push(doc.data());
+          });
+        } catch (error) {
+          console.error("Error loading users:", error);
+        }
+      }
+
+      async function loadSettings() {
+        try {
+          const settingsDoc = await db.collection("settings").doc("appSettings").get();
+          if (settingsDoc.exists) {
+            const settings = settingsDoc.data();
+            perAdRate = settings.perAdRate || 0.06;
+          }
+          
+          const countrySettingsDoc = await db.collection("settings").doc("countryRestrictions").get();
+          if (countrySettingsDoc.exists) {
+            const countrySettings = countrySettingsDoc.data();
+            selectedCountryCodes = countrySettings.allowedCountries || [];
+          }
+        } catch (error) {
+          console.error("Error loading settings:", error);
+        }
+      }
+
+      // Firebase data saving functions
+      async function saveUserData() {
+        try {
+          await db.collection("users").doc(userId).set(userData);
+        } catch (error) {
+          console.error("Error saving user data:", error);
+          showNotification("Error saving data", false);
+        }
+      }
+
+      async function saveWithdrawalRequest(request) {
+        try {
+          await db.collection("withdrawalRequests").add(request);
+        } catch (error) {
+          console.error("Error saving withdrawal request:", error);
+          showNotification("Error submitting request", false);
+        }
+      }
+
+      async function updateWithdrawalRequest(index, updates) {
+        try {
+          const request = allRequests[index];
+          // Since we don't have document IDs stored, we need to query by unique fields
+          const querySnapshot = await db.collection("withdrawalRequests")
+            .where("userId", "==", request.userId)
+            .where("date", "==", request.date)
+            .get();
+          
+          if (!querySnapshot.empty) {
+            const docId = querySnapshot.docs[0].id;
+            await db.collection("withdrawalRequests").doc(docId).update(updates);
+          }
+        } catch (error) {
+          console.error("Error updating withdrawal request:", error);
+        }
+      }
+
+      async function deleteWithdrawalRequest(index) {
+        try {
+          const request = allRequests[index];
+          // Since we don't have document IDs stored, we need to query by unique fields
+          const querySnapshot = await db.collection("withdrawalRequests")
+            .where("userId", "==", request.userId)
+            .where("date", "==", request.date)
+            .get();
+          
+          if (!querySnapshot.empty) {
+            const docId = querySnapshot.docs[0].id;
+            await db.collection("withdrawalRequests").doc(docId).delete();
+          }
+        } catch (error) {
+          console.error("Error deleting withdrawal request:", error);
+        }
+      }
+
+      async function saveSettings() {
+        try {
+          await db.collection("settings").doc("appSettings").set({
+            perAdRate: perAdRate
+          });
+          
+          await db.collection("settings").doc("countryRestrictions").set({
+            allowedCountries: selectedCountryCodes,
+            restrictionEnabled: selectedCountryCodes.length > 0
+          });
+        } catch (error) {
+          console.error("Error saving settings:", error);
+          showNotification("Error saving settings", false);
+        }
+      }
+
+      async function updateUserInAllUsers(userId, updates) {
+        try {
+          await db.collection("users").doc(userId).update(updates);
+        } catch (error) {
+          console.error("Error updating user:", error);
+        }
+      }
+
+      async function loadData() {
+        // Show loading indicator
+        document.getElementById("firebaseLoading").style.display = "flex";
         
-        // Load user data
-        const d = localStorage.getItem(userId+"_data");
-        if (d) userData = JSON.parse(d);
-        else userData = {balance:0, userId:userId};
-        
-        // Load VPN settings
-        const vpnSettings = JSON.parse(localStorage.getItem("vpnSettings") || '{"vpnRequired": false, "allowedCountries": "", "requiredIP": "", "requiredPort": ""}');
-        vpnToggle.checked = vpnSettings.vpnRequired;
-        allowedCountriesInput.value = vpnSettings.allowedCountries;
-        requiredIPInput.value = vpnSettings.requiredIP;
-        requiredPortInput.value = vpnSettings.requiredPort;
-        
-        updateUI();
+        try {
+          await Promise.all([
+            loadUserData(),
+            loadAllRequests(),
+            loadAllUsers(),
+            loadSettings()
+          ]);
+          
+          updateUI();
+          renderCountryList();
+          renderSelectedCountries();
+          renderUsersList();
+        } catch (error) {
+          console.error("Error loading data:", error);
+          showNotification("Error loading data", false);
+        } finally {
+          // Hide loading indicator
+          document.getElementById("firebaseLoading").style.display = "none";
+        }
       }
       
-      function saveData() {
-        localStorage.setItem(userId+"_data", JSON.stringify(userData));
-        localStorage.setItem("allRequests", JSON.stringify(allRequests));
-        localStorage.setItem("perAdRate", perAdRate.toString());
-        
-        // Save VPN settings
-        const vpnSettings = {
-          vpnRequired: vpnToggle.checked,
-          allowedCountries: allowedCountriesInput.value,
-          requiredIP: requiredIPInput.value,
-          requiredPort: requiredPortInput.value
-        };
-        localStorage.setItem("vpnSettings", JSON.stringify(vpnSettings));
-      }
-
       function updateUI() {
         balanceEl.textContent = userData.balance.toFixed(2);
         perAdAmountEl.textContent = perAdRate.toFixed(2);
@@ -920,54 +1334,263 @@
         
         // Add event listeners to action buttons
         document.querySelectorAll('.approve').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const index = btn.getAttribute('data-index');
             allRequests[index].status = "paid";
-            saveData();
+            
+            // Update in Firebase
+            await updateWithdrawalRequest(index, { status: "paid" });
+            
             updateUI();
             showNotification("Request approved");
           });
         });
         
         document.querySelectorAll('.reject').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const index = btn.getAttribute('data-index');
             allRequests[index].status = "rejected";
-            saveData();
+            
+            // Update in Firebase
+            await updateWithdrawalRequest(index, { status: "rejected" });
+            
             updateUI();
             showNotification("Request rejected");
           });
         });
         
         document.querySelectorAll('.delete').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const index = btn.getAttribute('data-index');
+            
+            // Delete from Firebase
+            await deleteWithdrawalRequest(index);
+            
+            // Remove from local array
             allRequests.splice(index, 1);
-            saveData();
+            
             updateUI();
             showNotification("Request deleted");
           });
         });
       }
 
+      function renderCountryList() {
+        countriesList.innerHTML = "";
+        
+        const searchTerm = countrySearch.value.toLowerCase();
+        let filteredCountries = countryData;
+        
+        // Filter by search term
+        if (searchTerm) {
+          filteredCountries = filteredCountries.filter(country => 
+            country.name.toLowerCase().includes(searchTerm) || 
+            country.code.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        // Filter by tier
+        if (currentTierFilter !== "all") {
+          filteredCountries = filteredCountries.filter(country => country.tier === currentTierFilter);
+        }
+        
+        // Render countries
+        filteredCountries.forEach(country => {
+          const isSelected = selectedCountryCodes.includes(country.code);
+          
+          const countryItem = document.createElement("div");
+          countryItem.className = `country-item ${isSelected ? "selected" : ""}`;
+          countryItem.innerHTML = `
+            <input type="checkbox" class="country-checkbox" data-code="${country.code}" ${isSelected ? "checked" : ""}>
+            ${country.name} (${country.code}) - <span class="tier-${country.tier}">${country.tier}</span>
+          `;
+          
+          countryItem.addEventListener("click", (e) => {
+            if (e.target.type !== "checkbox") {
+              const checkbox = countryItem.querySelector(".country-checkbox");
+              checkbox.checked = !checkbox.checked;
+              handleCountrySelection(country.code, checkbox.checked);
+            }
+          });
+          
+          const checkbox = countryItem.querySelector(".country-checkbox");
+          checkbox.addEventListener("change", () => {
+            handleCountrySelection(country.code, checkbox.checked);
+          });
+          
+          countriesList.appendChild(countryItem);
+        });
+      }
+      
+      function handleCountrySelection(countryCode, isSelected) {
+        if (isSelected) {
+          if (!selectedCountryCodes.includes(countryCode)) {
+            selectedCountryCodes.push(countryCode);
+          }
+        } else {
+          selectedCountryCodes = selectedCountryCodes.filter(code => code !== countryCode);
+        }
+        
+        renderSelectedCountries();
+      }
+      
+      function renderSelectedCountries() {
+        if (selectedCountryCodes.length === 0) {
+          selectedCountries.innerHTML = "<div style='color: #666; padding: 10px; text-align: center;'>No countries selected</div>";
+          return;
+        }
+        
+        selectedCountries.innerHTML = "";
+        selectedCountryCodes.forEach(code => {
+          const country = countryData.find(c => c.code === code);
+          if (country) {
+            const badge = document.createElement("span");
+            badge.className = "status-badge";
+            badge.textContent = `${country.name} (${code})`;
+            badge.style.margin = "0 5px 5px 0";
+            badge.style.cursor = "pointer";
+            
+            badge.addEventListener("click", () => {
+              selectedCountryCodes = selectedCountryCodes.filter(c => c !== code);
+              renderSelectedCountries();
+              renderCountryList();
+            });
+            
+            selectedCountries.appendChild(badge);
+          }
+        });
+      }
+      
+      function renderUsersList() {
+        usersList.innerHTML = "";
+        
+        const searchTerm = userSearch.value.toLowerCase();
+        let filteredUsers = allUsers;
+        
+        // Filter by search term
+        if (searchTerm) {
+          filteredUsers = filteredUsers.filter(user => 
+            user.name.toLowerCase().includes(searchTerm) || 
+            user.username.toLowerCase().includes(searchTerm) ||
+            user.userId.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        if (filteredUsers.length === 0) {
+          usersList.innerHTML = "<div style='color: #666; padding: 10px; text-align: center;'>No users found</div>";
+          return;
+        }
+        
+        // Render users
+        filteredUsers.forEach(user => {
+          const userItem = document.createElement("div");
+          userItem.className = "user-item";
+          userItem.innerHTML = `
+            <div class="user-info">
+              <div class="user-name">${user.name}</div>
+              <div class="user-id">@${user.username} | ${user.userId}</div>
+            </div>
+            <div class="user-balance">৳${user.balance.toFixed(2)}</div>
+            <div class="user-actions">
+              <button class="action-btn approve edit-user" data-user="${user.userId}">✏️</button>
+            </div>
+          `;
+          
+          usersList.appendChild(userItem);
+        });
+        
+        // Add event listeners to edit buttons
+        document.querySelectorAll('.edit-user').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const userId = btn.getAttribute('data-user');
+            editUserBalance(userId);
+          });
+        });
+      }
+      
+      function editUserBalance(userId) {
+        const user = allUsers.find(u => u.userId === userId);
+        if (!user) return;
+        
+        const userItem = document.querySelector(`.edit-user[data-user="${userId}"]`).closest('.user-item');
+        
+        // Check if edit form already exists
+        if (userItem.querySelector('.edit-balance-form')) {
+          userItem.querySelector('.edit-balance-form').remove();
+          return;
+        }
+        
+        // Remove any other edit forms
+        document.querySelectorAll('.edit-balance-form').forEach(form => form.remove());
+        
+        const editForm = document.createElement("div");
+        editForm.className = "edit-balance-form";
+        editForm.innerHTML = `
+          <input type="number" step="0.01" value="${user.balance}" placeholder="New balance">
+          <button class="action-btn approve save-balance">Save</button>
+          <button class="action-btn delete cancel-edit">Cancel</button>
+        `;
+        
+        userItem.appendChild(editForm);
+        
+        // Add event listeners
+        editForm.querySelector('.save-balance').addEventListener('click', async () => {
+          const newBalance = parseFloat(editForm.querySelector('input').value);
+          if (!isNaN(newBalance)) {
+            // Update user balance in allUsers
+            const userIndex = allUsers.findIndex(u => u.userId === userId);
+            allUsers[userIndex].balance = newBalance;
+            
+            // Update in Firebase
+            await updateUserInAllUsers(userId, { balance: newBalance });
+            
+            // If it's the current user, update their balance too
+            if (userId === userData.userId) {
+              userData.balance = newBalance;
+              updateUI();
+            }
+            
+            showNotification("Balance updated successfully");
+            renderUsersList();
+          }
+        });
+        
+        editForm.querySelector('.cancel-edit').addEventListener('click', () => {
+          editForm.remove();
+        });
+      }
+
       // === Ad Watch ===
-      watchAdBtn.onclick = ()=>{
+      watchAdBtn.onclick = async ()=>{
         adModal.style.display="flex";
         adTimer.textContent = "Loading ad...";
         closeAdBtn.style.display="none";
 
         // Get the current per-ad rate to ensure it's up to date
-        const currentPerAdRate = parseFloat(localStorage.getItem("perAdRate")||"0.06");
+        const currentPerAdRate = perAdRate;
         
         // Only use Giga ad (removed Adexora fallback)
         if(typeof window.showGiga === "function"){
           window.showGiga()
-            .then(()=>{
-              // Removed the 5-second waiting timer
+            .then(async ()=>{
               closeAdBtn.style.display="block";
               adTimer.textContent = "✅ Ad finished!";
               userData.balance += currentPerAdRate;
-              saveData(); updateUI();
+              
+              // Update user in allUsers
+              const userIndex = allUsers.findIndex(u => u.userId === userId);
+              if (userIndex !== -1) {
+                allUsers[userIndex].balance = userData.balance;
+                if (!allUsers[userIndex].adHistory) allUsers[userIndex].adHistory = [];
+                allUsers[userIndex].adHistory.push({
+                  date: new Date().toISOString(),
+                  amount: currentPerAdRate
+                });
+              }
+              
+              // Save to Firebase
+              await saveUserData();
+              updateUI();
               showNotification("You earned ৳"+currentPerAdRate.toFixed(2));
             })
             .catch(e=>{
@@ -980,7 +1603,21 @@
           closeAdBtn.style.display="block";
           adTimer.textContent = "✅ Ad finished!";
           userData.balance += currentPerAdRate;
-          saveData(); updateUI();
+          
+          // Update user in allUsers
+          const userIndex = allUsers.findIndex(u => u.userId === userId);
+          if (userIndex !== -1) {
+            allUsers[userIndex].balance = userData.balance;
+            if (!allUsers[userIndex].adHistory) allUsers[userIndex].adHistory = [];
+            allUsers[userIndex].adHistory.push({
+              date: new Date().toISOString(),
+              amount: currentPerAdRate
+            });
+          }
+          
+          // Save to Firebase
+          await saveUserData();
+          updateUI();
           showNotification("You earned ৳"+currentPerAdRate.toFixed(2));
         }
       };
@@ -1010,7 +1647,7 @@
         });
       });
       
-      submitWithdrawBtn.onclick = ()=>{
+      submitWithdrawBtn.onclick = async ()=>{
         let method = withdrawMethodSelect.value;
         let number = accountNumberInput.value;
         let amount = parseFloat(withdrawAmountInput.value);
@@ -1020,12 +1657,30 @@
         if(userData.balance<amount) return showNotification("⚠️ Insufficient balance",false);
         
         userData.balance -= amount;
-        allRequests.push({
-          userId:userData.userId,method,number,amount,
-          status:"pending",date:new Date().toLocaleString()
-        });
         
-        saveData(); 
+        // Update user in allUsers
+        const userIndex = allUsers.findIndex(u => u.userId === userId);
+        if (userIndex !== -1) {
+          allUsers[userIndex].balance = userData.balance;
+        }
+        
+        const requestData = {
+          userId:userData.userId,
+          method,
+          number,
+          amount,
+          status:"pending",
+          date:new Date().toLocaleString()
+        };
+        
+        allRequests.push(requestData);
+        
+        // Save to Firebase
+        await Promise.all([
+          saveUserData(),
+          saveWithdrawalRequest(requestData)
+        ]);
+        
         updateUI();
         withdrawForm.classList.add("hidden-section");
         
@@ -1053,9 +1708,12 @@
         }
       };
       
-      saveSettingsBtn.onclick = ()=>{
+      saveSettingsBtn.onclick = async ()=>{
         perAdRate = parseFloat(perAdRateInput.value)||0.06;
-        saveData(); 
+        
+        // Save to Firebase
+        await saveSettings();
+        
         updateUI();
         showNotification("✅ Settings saved");
       };
@@ -1081,10 +1739,30 @@
         }
       });
 
+      // Country search functionality
+      countrySearch.addEventListener("input", () => {
+        renderCountryList();
+      });
+      
+      // Tier filter functionality
+      tierButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          tierButtons.forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          currentTierFilter = btn.dataset.tier;
+          renderCountryList();
+        });
+      });
+      
+      // User search functionality
+      userSearch.addEventListener("input", () => {
+        renderUsersList();
+      });
+
       // Init
       loadData();
       document.getElementById("current-date").textContent=new Date().toDateString();
     });
   </script>
 </body>
-  </html>
+            </html>
